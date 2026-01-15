@@ -10,7 +10,7 @@ from src.schemas import PriceTickCreate
 logger = logging.getLogger(__name__)
 
 
-class PriceTickCRUD:
+class PriceRepository:
     @staticmethod
     def create(db: Session, price_tick: PriceTickCreate) -> PriceTick:
         db_price_tick = PriceTick(

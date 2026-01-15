@@ -5,7 +5,7 @@ from typing import Optional
 from src.config import settings
 from src.client.price_fetcher import PriceFetcher
 from src.database import SessionLocal
-from src.repository.price_repository import PriceTickCRUD
+from src.repository.price_repository import PriceRepository
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ def fetch_and_store_price_task(self, currency: str) -> Optional[int]:
 
         db = SessionLocal()
         try:
-            price_tick = PriceTickCRUD.create(db, price_data)
+            price_tick = PriceRepository.create(db, price_data)
             db.commit()
             logger.info(f"Successfully stored {currency} price: {price_tick.price}")
             return price_tick.id

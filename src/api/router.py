@@ -8,7 +8,7 @@ from src.schemas import (
     PriceResponse,
     ErrorResponse
 )
-from src.repository.price_repository import PriceTickCRUD
+from src.repository.price_repository import PriceRepository
 from src.api.dependencies import validate_ticker, validate_date_format
 
 router = APIRouter()
@@ -26,8 +26,8 @@ def get_all_prices(
     db: Session = Depends(get_db)
 ) -> PriceTickListResponse:
     try:
-        prices = PriceTickCRUD.get_all_by_ticker(db, ticker, skip, limit)
-        total = PriceTickCRUD.get_count_by_ticker(db, ticker)
+        prices = PriceRepository.get_all_by_ticker(db, ticker, skip, limit)
+        total = PriceRepository.get_count_by_ticker(db, ticker)
 
         return PriceTickListResponse(
             items=prices,
@@ -53,7 +53,7 @@ def get_latest_price(
     db: Session = Depends(get_db)
 ) -> PriceResponse:
     try:
-        price_tick = PriceTickCRUD.get_latest_price(db, ticker)
+        price_tick = PriceRepository.get_latest_price(db, ticker)
 
         if not price_tick:
             raise HTTPException(
@@ -100,7 +100,7 @@ def get_prices_by_date(
 
         end = end + timedelta(days=1)
 
-        prices = PriceTickCRUD.get_prices_by_date_range(
+        prices = PriceRepository.get_prices_by_date_range(
             db, ticker, start, end, skip, limit
         )
 
