@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: deribit_user
+      POSTGRES_PASSWORD: deribit_password
+      POSTGRES_DB: deribit_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deribit_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://deribit_user:deribit_password@db:5432/deribit_db
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app/src
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+  celery_worker:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://deribit_user:deribit_password@db:5432/deribit_db
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./src:/app/src
+    command: celery -A src.celery_worker.tasks.celery_app worker --loglevel=info
+
+  celery_beat:
+    build: .
+    user: "1000:1000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://deribit_user:deribit_password@db:5432/deribit_db
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./src:/app/src
+    command: celery -A src.celery_worker.tasks.celery_app beat --loglevel=info
+
+  flower:
+    build: .
+    depends_on:
+      - redis
+      - celery_worker
+    environment:
+      DATABASE_URL: postgresql://deribit_user:deribit_password@db:5432/deribit_db
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    ports:
+      - "5555:5555"
+    command: celery -A src.celery_worker.tasks.celery_app flower --port=5555
+
+volumes:
+  postgres_data:

@@ -1,7 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
-from contextlib import contextmanager
 from typing import Generator
 import logging
 
@@ -28,7 +27,6 @@ def init_db() -> None:
         raise
 
 
-@contextmanager
 def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
